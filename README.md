@@ -8,8 +8,8 @@
 > 建议使用 **64GB** 的品牌 microSD 卡。
 
 1. **软件**: `35XX-64GB230309EN.IMG` (官方固件镜像)。
-   > [!WARNING]
-   > 由于该文件超过 1GB，上传至 GitHub 时必须启用 **Git LFS**，或单独提供分流下载。
+   > [!TIP]
+   > 请前往本仓库的 [Releases](https://github.com/leomsn/RG35XX-MyFinUI-CN/releases) 页面下载该大文件镜像。这样可以避免占用 LFS 额度，下载也更快速。
 2. **系统**: 工作目录下的 `MinUI.zip` (已预置中文字体) 和 `dmenu.bin`。
 3. **字体**: `BPreplayBold-unhinted.otf` (工作目录中)。
 4. **备份**: 电脑上的 ROM 备份文件夹（默认指向 `/Users/leo/_Backup/RG35XX/Roms`）。
