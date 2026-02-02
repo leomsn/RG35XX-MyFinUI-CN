@@ -13,9 +13,8 @@ Thumbs.db
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 
-# Large Binary Files
-# (User wants these included, but note GitHub 100MB limit)
-# *.IMG
+# Large Binary Files (Handled via GitHub Releases)
+*.IMG
 # *.zip
 
 # Local brain/task files (optional, but usually kept out of project repo)
