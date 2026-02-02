@@ -1,0 +1,217 @@
+#!/system/bin/sh
+
+if [ -f /misc/enableADB ]; then
+	/usbdbg.sh device
+fi
+
+TF1_PATH=/mnt/mmc # ROMS partition
+TF2_PATH=/mnt/sdcard
+SDCARD_PATH=$TF1_PATH
+SYSTEM_DIR=/.system
+SYSTEM_FRAG=$SYSTEM_DIR/rg35xx
+UPDATE_FRAG=/MinUI.zip
+SYSTEM_PATH=${SDCARD_PATH}${SYSTEM_FRAG}
+UPDATE_PATH=${SDCARD_PATH}${UPDATE_FRAG}
+
+mkdir /mnt/sdcard
+if [ -e /dev/block/mmcblk1p1 ]; then
+	SDCARD_DEVICE=/dev/block/mmcblk1p1
+else
+	SDCARD_DEVICE=/dev/block/mmcblk1
+fi
+mount -t vfat -o rw,utf8,noatime $SDCARD_DEVICE /mnt/sdcard
+if [ $? -ne 0 ]; then
+	mount -t exfat -o rw,utf8,noatime $SDCARD_DEVICE /mnt/sdcard
+	if [ $? -ne 0 ]; then
+		rm -rf $TF2_PATH
+		ln -s $TF1_PATH $TF2_PATH
+	fi
+fi
+
+if [ -d ${TF1_PATH}${SYSTEM_FRAG} ] || [ -f ${TF1_PATH}${UPDATE_FRAG} ]; then
+	if [ ! -L $TF2_PATH ]; then
+		# .system found on TF1 but TF2 is present
+		# so unmount and symlink to TF1 path
+		umount $TF2_PATH
+		rm -rf $TF2_PATH
+		ln -s $TF1_PATH $TF2_PATH
+	fi
+fi
+
+SDCARD_PATH=$TF2_PATH
+SYSTEM_PATH=${SDCARD_PATH}${SYSTEM_FRAG}
+UPDATE_PATH=${SDCARD_PATH}${UPDATE_FRAG}
+
+# is there an update available?
+if [ -f $UPDATE_PATH ]; then
+	FLAG_PATH=/misc/.minstalled
+	if [ ! -f $FLAG_PATH ]; then
+		ACTION=installing
+	else
+		ACTION=updating
+	fi
+
+	# extract the zip file appended to the end of this script to tmp
+	# and display one of the two images it contains
+	CUT=$((`busybox grep -n '^BINARY' $0 | busybox cut -d ':' -f 1 | busybox tail -1` + 1))
+	busybox tail -n +$CUT "$0" | busybox uudecode -o /tmp/data
+	busybox unzip -o /tmp/data -d /tmp
+	busybox fbset -g 640 480 640 480 16
+	dd if=/tmp/$ACTION of=/dev/fb0
+	sync
+
+	busybox unzip -o $UPDATE_PATH -d $SDCARD_PATH
+	rm -f $UPDATE_PATH
+
+	# the updated system finishes the install/update
+	$SYSTEM_PATH/bin/install.sh # &> $SDCARD_PATH/install.txt
+fi
+
+ROOTFS_IMAGE=$SYSTEM_PATH/rootfs.ext2
+if [ ! -f $ROOTFS_IMAGE ]; then
+	# fallback to stock demenu.bin, based on dmenu_ln
+	ACT="/tmp/.next"
+	CMD="/mnt/vendor/bin/dmenu.bin"
+	touch "$ACT"
+	while [ -f $CMD ]; do
+		if $CMD; then
+			if [ -f "$ACT" ]; then
+				if  ! sh $ACT; then
+					echo
+				fi
+				rm -f "$ACT"
+			fi
+		fi
+	done
+	sync && reboot -p
+fi
+
+ROOTFS_MOUNTPOINT=/cfw
+LOOPDEVICE=/dev/block/loop7
+mkdir $ROOTFS_MOUNTPOINT
+busybox losetup $LOOPDEVICE $ROOTFS_IMAGE
+mount -r -w -o loop -t ext4 $LOOPDEVICE $ROOTFS_MOUNTPOINT
+rm -rf $ROOTFS_MOUNTPOINT/tmp/*
+mkdir $ROOTFS_MOUNTPOINT/mnt/mmc
+mkdir $ROOTFS_MOUNTPOINT/mnt/sdcard
+for f in dev dev/pts proc sys mnt/mmc mnt/sdcard # tmp doesn't work for some reason?
+do
+	mount -o bind /$f $ROOTFS_MOUNTPOINT/$f
+done
+
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+export LD_LIBRARY_PATH=/usr/lib/:/lib/
+export HOME=$SDCARD_PATH
+busybox chroot $ROOTFS_MOUNTPOINT $SYSTEM_PATH/paks/MinUI.pak/launch.sh
+
+umount $ROOTFS_MOUNTPOINT
+busybox losetup --detach $LOOPDEVICE
+sync && reboot -p
+
+exit 0
+BINARY
+begin 644 data
+M4$L#!!0````(`#5_@5A:BU=V)0@```A@"0`*`!P`:6YS=&%L;&EN9U54"0`#
+MM1$+9K41"V9U>`L``00`````!`````#MW3%2VTH8!_`<(T?`=Z"BIV"&RKTK
+M3I#Q%3@"XXXCP!'2>"8-)3.TE"Y=YKU]^W:^U5JR;+#!";\?E2S;^B+/_B-I
+M5ZMOWP``````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M``````````````````````````````````````````````````````````"`
+MO]ML<GES>;/[\F<XA1J`0UE.+V^6T\^N(B7+\\OO?SV_S"9]R\OI8ETO'\O9
+M14JX]N\]-:0]?'8QO*[>^Z?R:\!7<'W_^S]/=Y]=R=7M[_^MYGW+/WZ5Y6/6
+M&EOM6JQ3@KVEAL>'X4^TZT[GUX"O(-KW9U?R=-?-EG8YLNC[S^-5D8_O^J0J
+M]J_A[&)X#\\F\7WYE=/Y->`K:%O@(9Q=/-T]W0V=\0T9R[_O/\ORU>WA:FT-
+MI5^N8O\:+F^&]_#FNF/\&L"0P[>XV20?0^4SQMV-Y=_91;X>^/APJ$K[#.=?
+M2KS]:Y!_<+H.W^+B"MI^5['&\B]93O<]JMQ7[(\?O^J_M]8@_^!TC;6X--ZC
+MKZ]S-EG-TUEN^EO-ZW?TY58M]:_V]7#NDG_;#%5::HVU:6DHP]Z70)LUR#\X
+M79LM+O=)7M^GI"K]D^>ON0^V>+IK^PD>'W*B/-V=OY;7SE^[1TY7M]%_FL:0
+M/-UMR\W-_+N^7ZS/7^/[=JFTKG6Q3I\M-?2/XAM+H'UKD']PNMH6%V>O5[?=
+MC(LK_OD:6.OYI<ZL6C[:Z_O48ATI-)9_45G^OETJC1$F12SW7\-K]T?7_C7(
+M/SA=;8OK3["L'.$-K1]:ES*N;NN;:[O?VY]_L9RS9;S2=*8[_)X?OW;9'UW[
+MUR#_X'2U+6Y;BTYG>=^^Q?EM.K>-,]IT_'=V$6OC]726&^/@6N>O[9;'\J]=
+M'JITVVB^\?PK5S?3E<.R=O\:Y!^<KK;%U2TZ]1*LYG'>FA.C+)7<FDVN;E-*
+ME&MY\0V/#W5/Q^5-29/+F]6\OA*8\^4]^==?:7TO1_N.\?RKE;/9_6N0?W"Z
+MVA97IU=^)5II3KS-5.C:M=_V[7G7+@]5&AE;WE'&)D8^#>^/6GGO_C7(/SA=
+M;8N+%AUG?=WWQ#T0*1<V>U%W'[=2SI7?FW]#E4;6Q6B7<H?MH?-OJ`;Y!Z>K
+M;7'C+7HY[6;#^6OW.'!;_BVGY9I:/9O`L?(O*HP*(G,.>_XK_^#/T[:X\1:=
+MKJNU_0KGK\-]!,5R6E_S2_ESW..__J3;/?_VZ_^0?_#G:5O<+OE7C_4-0\=(
+M69DYK\]IYE_?VO?E7WO/B?R#S]6VN-WR+]G,P'9\8)U__6.F^[/D,/D7LTO5
+MY[\Q(O!C\F];?U%<BRSS76W?.G!8;8O;/?^2V23:<!GQUI=_D3K/+ZOYV<5R
+M>G4;(P4_LO\C,ONC\J^^'["^WV\VJ4=2[K)UX+#:%C?>HMO9_>(3[:B[R+_V
+MOHGN:\?*O^BI+K.5UGTW'Y5_]5%R2O_\ZN5-?41<]M3FUO.HR<C-L65@=VV+
+M&VO19Q?EJ.KQ(8]M;L?`Q56M-,-!>T[\_)(_M9K'T=FQ\J^^^^W[S]4\S5T0
+MKWQ4_@W?^1=*?K6?+?^7+-;Y'6/+P#[:%K=[K\*F?&S7WNF6CGB&GJJ1'2O_
+MME]U_*C\J\=A;_OW]WVVO48PM@SLHVUQX\=_0ZTXW?^;=>\!3N>>]7T70^W_
+M[?,?#&?/9J]S>W_:V/[H>DL-]3%SG]AOV_I.VF>@]"\#^R@ML[3"=H:GI&1&
+M3HS5?'..@SBOS>^HUY2SXC8#KN^[XY_C4SE+VN7AN:>&*MW<[F(=5P#[Y[\J
+M[Z[[C,/;:HAY\S==W]=GKNVO$=<.\SX86P;VD=/L_#7:;^HU6*S+#"K)<MI]
+M3YKQH&[/:3[0[O6GF`<@)4[YEKH_(K77G![Q+-W<EQQ;;I=CKM%=*TW2.)V4
+M*XOUX\-L$L>O_4=,N5^Z'L_=];8:\C=W,S#5TVZE_35FD[2]N,-F;!GX&&FN
+M]W@R^*;\'/'VU>YK:23,L>KK5\]8^K%;SLKSU#WC'#BNV:1[_]IL$L=@QWZ2
+M$L!G*E<8TTB<-%)N<\0QP-]HN*]:?P'P=XL[@%O'?88ZP.>K[TZ6?L#7TGWF
+M1WD&,,#7D&>=3D^KN[IUGRP`````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M`````````````````````````````````````````````,!G^`=02P,$%```
+M``@`-7^!6$G_#E"""```"&`)``@`'`!U<&1A=&EN9U54"0`#M1$+9K41"V9U
+M>`L``00`````!`````#MW3UNVT@8!N`]1HY@W<&5>Q<&4JE7Y1,8NH*/8*C+
+M$9(CI!'@QJ4!MRY5NM1B=G;P#7\E4O*NO/L\J6A2Y"<"?#/D<$9__`$`````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````?%6KQ<O3R]-N
+M??I^;N]O[\]1T=>N`3B/[?+V_NIF>-UV>?HQKM_W?SDM`;?+S4?:R^O;:G%Z
+M3<.N;E+"M?_E8\ZK8=HY/M=9!\;]^IF3Z>5IVKHI;N_W?_OU\Y3]/#R7_9Q:
+MT9B[QWVOS4=*L#DU3#O'WW]\_G<$4DLGKN[VNM4BKOW3CA+Y]_!\RGZBGF^_
+M3ZMH3&[?]4F)-+V&J>=X>&O@G"*9NADWMF[N48[/OZN;],2P><_X[7?9S]WC
+M:16-&4J_G'_3:YAZCL]UUH%QEYI_JT5NA>5[SN+JYO4M_?6TN^A#AO,O)=[T
+M&N0?7*9+S;]X!M=^"K9=#O4CG$M\ZX?G^E]4,JT&^0>7:=JUF=_\*/V>V^5N
+M??<XU$^Y6NS6+T]YZ^'\2SVM?7MX>1K*OS&IOOY>V;J:)"T-9=AI^=.M0?[!
+M99IR;<8]Z6JQ748_Z,-S-TE>GDHOPN8CY4XW_^X>8P_I;9*7ITB-EZ?ROLQ^
+M?_U>M[V^_]A\7+]')N;>T^\_4I*6GM3K]_9;-LUJH@^W_RV^0_DSM0;Y!Y=I
+MRK49]Z0I`?:5YE.Z>*<C4J^=?_D96M/F(^=1M/UJJ948%>0V8RS?/38KJOLF
+MVM7$<O\SO.$STCSFL37(/[A,4Z[-_ES*ZOO:W?K0=O6>FU("]A^GN29GRUA%
+M)9$/5],6Z_O63J]!_L%E.E?^U2VNX??G2N+$&W%MU^]I;=S]%GFT1?NIX%A%
+MZ7[TN&K:8GUZ`R?_BSOEZ37(/[A,<_,O/4=+?0IQ'UNRI!X]D?H8ZFUBJ]O[
+MDBNW][MU_22P?0_\ZV?TD(QE3_M8^4C'5=.T[U7R?7H-\@\NT]S\*T__ZVUR
+M_T5D67FZ5OI-AA-G+%7J_M_AK<JQHI[4DIQ7S;Y7V79Z#?(/+M.\_,O7=1:M
+MG=QRBW2)/I$RHG7L_;]RSSLO_^+^M%GSG&KVO0[GWU`-\@\NT[S\J_M-(TUR
+M'I2E.B/[W__;+LO3M7I>@?/FW_'5A'VOP_>_\@^^EGGY-YQ)_=G2_6O]_F#^
+M^V>T_XZMIBGV,*W_0_[!UU)??^VWF#\O_\H<>GTN*?_ZUIZ6?X?.\>'C`^<3
+M5UM[/I.XL\TS,<657L_\%%NE$0\QGU-]QQGOX.7$Z7O[>2A53LF_XZH9/B-]
+M:Z?GWY1S?/CXP/G4(\WJ<:NK1:S).1%7>AH!U_U\;MOT]3C$B(NTI\B?U[?=
+M^NIFN[Q[C+U\?O]'LYJN\?R9DW_'G^/#QP?.IQX=EO(H__7VOFZC==]T*ST@
+M\7Y=:6'%_'BEE;A=QN?25=X>0='<=SY6__POT[/G<#5=X_DS)_^./\?]Q\]O
+M2Y;D;"YUEX%C#8]%"_G::HYT2',2Q-U;9%G]QO&WW[MU<ZQP,_]>W_*;S;MU
+M;)-S(*I*,R.4MMOT[*E'O_57T]7-G]J<_#O^'/=]NIS1W.IN+G67@2F:/;%=
+MI64R-M*K?K[6';T64N(,_;Y&?;3V"+G<9IJ3/6//&O^I_#O^'/=]NOELH/VD
+MH+T,3'%U,S9&]O6M;#><?YN/>@Z_;FNG.>*B'H$QG`3-%,UWK\-S#PQG3[>O
+MN3MFKZF]AZ8Y-1Q_COL^W3PW[3/57@:F*7.Z=WW_4<_*%U=:O<WFH]VKV6[A
+MW=Z7JS\_-XSE.$[S_>?VO"WY<\-S3T7^EF\2V=8\6LKJYE[;RM9UF[;ONTVI
+MX=AS7!^_I&(\/4P)VUSJ+@/3W3TVK\_-1YIYH-XB4J^>4?3AN6_^YMVZM-^N
+MW]/Z\J2P['&[K'LFTE]SCM2_JALS"43[,N8:S=)>-A^QG/:<CIR/6J1Y25.]
+MZ3NM%G%OW=]BRKW1U^]#>3*OAN/.<9R[^/1JD8YX_9[_EVDN=9>!N<IO?8_/
+M21_;COT.1G,_J9>R^_9O??6G-V':^\B_1#[M.QQ2SUAZWCT?9^P<`Y>IG7]?
+MPVK1'+^V6D0;[+-_20GXK_B:^5>>*Z;W:%(;M.^-8X!Q7S'_AF>:UE\`'"^>
+MF_W;E1PO1@"W?>YOJ`/_+>6]O;JG\_+58U2D'S!7^L6/K]=KV?S-C_(;P`#_
+M#WFNZ31F^>[1.%D`````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M````````````````````````````````````````````````````````````
+M`````````````````````````````````````(!_WI]02P$"'@,4````"``U
+M?X%86HM7=B4(```(8`D`"@`8````````````I($`````:6YS=&%L;&EN9U54
+M!0`#M1$+9G5X"P`!!``````$`````%!+`0(>`Q0````(`#5_@5A)_PY0@@@`
+M``A@"0`(`!@```````````"D@6D(``!U<&1A=&EN9U54!0`#M1$+9G5X"P`!
+@!``````$`````%!+!08``````@`"`)X````M$0``````
+`
+end
