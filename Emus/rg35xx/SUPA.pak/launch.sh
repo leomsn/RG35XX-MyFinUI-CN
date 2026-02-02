@@ -1,0 +1,16 @@
+#!/bin/sh
+
+EMU_EXE=mednafen_supafaust
+CORES_PATH=$(dirname "$0")
+
+###############################
+
+EMU_TAG=$(basename "$(dirname "$0")" .pak)
+ROM="$1"
+mkdir -p "$BIOS_PATH/$EMU_TAG"
+mkdir -p "$SAVES_PATH/$EMU_TAG"
+HOME="$USERDATA_PATH"
+cd "$HOME"
+echo 1 > /sys/devices/system/cpu/cpu1/online
+minarch.elf "$CORES_PATH/${EMU_EXE}_libretro.so" "$ROM" &> "$LOGS_PATH/$EMU_TAG.txt"
+echo 0 > /sys/devices/system/cpu/cpu1/online

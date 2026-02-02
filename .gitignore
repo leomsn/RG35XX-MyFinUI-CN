@@ -1,0 +1,26 @@
+# OS files
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+._*
+
+# macOS junk
+.AppleDouble
+.LSOverride
+.DocumentRevisions-V100
+.fseventsd
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Large Binary Files
+# (User wants these included, but note GitHub 100MB limit)
+# *.IMG
+# *.zip
+
+# Local brain/task files (optional, but usually kept out of project repo)
+.gemini/
+brain/
+walkthrough.md
+task.md
+implementation_plan.md
